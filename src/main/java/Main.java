@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 public class Main {
     private static String lastTime = null;
     private static String currentByte = "";
+    private static Boolean previousSQLType = true;
 
     public static void main(String[] args) {
         // check if the file path is provided
@@ -45,32 +46,35 @@ public class Main {
         String time = getTime(line);
 
         int timeDifference = calculateTimeDifference(time);
+
+        String encodedString = getEncodedString(line);
+
+        // -1 for the first time
         if (timeDifference != -1) {
 //            System.out.println(getBits(timeDifference));
             String character = getByte(getBits(timeDifference));
 
+            // Display the whole byte
             if (!Objects.equals(character, "")) {
-                System.out.println(character);
+                System.out.print(character);
             }
-        }
-
-//        System.out.print(time + " ----> ");
-
-        String encodedString = getEncodedString(line);
-
-        if (encodedString == null) {
-            return;
         }
 
         // decode the line
         try {
             byte[] decodedBytes = java.util.Base64.getUrlDecoder().decode(encodedString);
 
+            previousSQLType = getSQLType(new String(decodedBytes));
+
             // print the decoded line
 //            System.out.println(new String(decodedBytes));
         } catch (IllegalArgumentException e) {
             System.out.println("Invalid base64 string: " + encodedString);
         }
+    }
+
+    private static Boolean getSQLType(String line) {
+        return !line.contains("),7,1");
     }
 
     private static String getEncodedString(String line) {
@@ -101,7 +105,6 @@ public class Main {
 
     // Calculate the time difference between lastTime and the time
     private static int calculateTimeDifference(String time) {
-
         if (lastTime == null) {
             lastTime = time;
             return -1;
@@ -117,18 +120,29 @@ public class Main {
 
         lastTime = time;
 
+//        System.out.println(lastTime);
+
         return difference;
     }
 
     private static String getBits(int timeDifference) {
         String bits = "";
 
-        switch (timeDifference) {
-            case 0 -> bits = "00";
-            case 2 -> bits = "01";
-            case 4 -> bits = "10";
-            case 6 -> bits = "11";
+        if (previousSQLType) {
+            switch (timeDifference) {
+                case 0 -> bits = "00";
+                case 2 -> bits = "01";
+                case 4 -> bits = "10";
+                case 6 -> bits = "11";
+            }
+        } else {
+            switch (timeDifference) {
+                case 0, 2 -> bits = "0";
+                case 4 -> bits = "1";
+            }
         }
+
+//        System.out.println(previousSQLType + ": " + timeDifference + " --> " + bits);
 
         return bits;
     }
@@ -137,17 +151,15 @@ public class Main {
     // If currentBytes are 8, return the byte and convert it to ascii
     private static String getByte(String bits) {
         currentByte += bits;
-        if (currentByte.length() == 8) {
+//        System.out.println(currentByte);
+        if (currentByte.length() == 7) {
             String byteToReturn = currentByte;
             currentByte = "";
-            // shift bits one position to the right
-
-            // replace first bit with 0
-//            byteToReturn = byteToReturn.replaceFirst("1", "0");
 
             int charCode = Integer.parseInt(byteToReturn, 2);
 
-            return byteToReturn + " " + Character.toString((char) charCode);
+//            return byteToReturn + " " + Character.toString((char) charCode);
+            return Character.toString((char) charCode);
         }
         return "";
     }
