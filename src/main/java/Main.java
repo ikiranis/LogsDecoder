@@ -43,57 +43,84 @@ public class Main {
      */
     public static void decodeLine(String line) {
 //        System.out.println("Line: " + line);
+        // Get the time from the line
         String time = getTime(line);
 
+        // Calculate the time difference from the last time
         int timeDifference = calculateTimeDifference(time);
 
+        // Get the encoded part of the line
         String encodedString = getEncodedString(line);
 
-        // -1 for the first time
+        // -1 for the first time. If we are not at the first time, decode the byte
         if (timeDifference != -1) {
-//            System.out.println(getBits(timeDifference));
+            // Get the byte if there are 7 bits
             String character = getByte(getBits(timeDifference));
 
-            // Display the whole byte
+            // Display the whole byte if it's not empty
             if (!Objects.equals(character, "")) {
-                System.out.print(character);
+//                System.out.print(character);
             }
         }
 
-        // decode the line
+        // Decode the base64 string
         try {
             byte[] decodedBytes = java.util.Base64.getUrlDecoder().decode(encodedString);
 
+            // Get the SQL type of the line
             previousSQLType = getSQLType(new String(decodedBytes));
 
             // print the decoded line
-//            System.out.println(new String(decodedBytes));
+            System.out.println(new String(decodedBytes));
         } catch (IllegalArgumentException e) {
             System.out.println("Invalid base64 string: " + encodedString);
         }
     }
 
+    /**
+     * There are 2 types of SQL queries. The first type has 2 bits, the second type has 1 bit.
+     * If the line contains "),7,1" it's the second type, otherwise it's the first type.
+     * Return true if it's the first type, false if it's the second type.
+     *
+     * @param line
+     * @return Boolean
+     */
     private static Boolean getSQLType(String line) {
         return !line.contains("),7,1");
     }
 
+    /**
+     * Get the encoded part of from the line
+     *
+     * @param line
+     * @return String
+     */
     private static String getEncodedString(String line) {
+        // There are 2 patterns for the encoded string
         Pattern pattern = Pattern.compile("&order=(.*?)%3D");
         Matcher matcher = pattern.matcher(line);
 
-        Pattern pattern3 = Pattern.compile("&order=(.*?) ");
-        Matcher matcher3 = pattern3.matcher(line);
+        Pattern pattern2 = Pattern.compile("&order=(.*?) ");
+        Matcher matcher2 = pattern2.matcher(line);
 
+        // If the first pattern is found, return this.
+        // Else, return the second pattern
         if (matcher.find()) {
             return matcher.group(1);
-        } else if (matcher3.find()) {
-            return matcher3.group(1);
+        } else if (matcher2.find()) {
+            return matcher2.group(1);
         }
 
         return null;
     }
 
-    // From "30/Mar/2024:12:12:54 +0200" get "12:12:54"
+    /**
+     * Get the time from the line
+     * From "30/Mar/2024:12:12:54 +0200" get "12:12:54"
+     *
+     * @param line
+     * @return String
+     */
     private static String getTime(String line) {
         Pattern pattern = Pattern.compile(":(\\d{2}:\\d{2}:\\d{2})");
         Matcher matcher = pattern.matcher(line);
@@ -103,31 +130,44 @@ public class Main {
         return null;
     }
 
-    // Calculate the time difference between lastTime and the time
+    /**
+     * Calculate the time difference between lastTime and the time
+     *
+     * @param time
+     * @return int
+     */
     private static int calculateTimeDifference(String time) {
         if (lastTime == null) {
             lastTime = time;
             return -1;
         }
 
+        // Split the time in hours, minutes and seconds
         String[] lastTimeParts = lastTime.split(":");
         String[] timeParts = time.split(":");
 
+        // Calculate the time in seconds
         int lastTimeSeconds = Integer.parseInt(lastTimeParts[0]) * 3600 + Integer.parseInt(lastTimeParts[1]) * 60 + Integer.parseInt(lastTimeParts[2]);
         int timeSeconds = Integer.parseInt(timeParts[0]) * 3600 + Integer.parseInt(timeParts[1]) * 60 + Integer.parseInt(timeParts[2]);
 
+        // Calculate the difference
         int difference = timeSeconds - lastTimeSeconds;
 
         lastTime = time;
 
-//        System.out.println(lastTime);
-
         return difference;
     }
 
+    /**
+     * Get the bits based on time difference
+     *
+     * @param timeDifference
+     * @return String
+     */
     private static String getBits(int timeDifference) {
         String bits = "";
 
+        // Based on previousSQLType, add 2 bits or 1 bit
         if (previousSQLType) {
             switch (timeDifference) {
                 case 0 -> bits = "00";
@@ -142,25 +182,29 @@ public class Main {
             }
         }
 
-//        System.out.println(previousSQLType + ": " + timeDifference + " --> " + bits);
-
         return bits;
     }
 
-    // If currentBytes are <8, add the bits to it
-    // If currentBytes are 8, return the byte and convert it to ascii
+    /**
+     * Get the byte based on the bits
+     * If currentBytes are <7, add the bits to it
+     * If currentBytes are 7, return the byte and convert it to ascii
+     *
+     * @param bits
+     * @return String
+     */
     private static String getByte(String bits) {
         currentByte += bits;
-//        System.out.println(currentByte);
+
         if (currentByte.length() == 7) {
             String byteToReturn = currentByte;
             currentByte = "";
 
             int charCode = Integer.parseInt(byteToReturn, 2);
 
-//            return byteToReturn + " " + Character.toString((char) charCode);
             return Character.toString((char) charCode);
         }
+
         return "";
     }
 
