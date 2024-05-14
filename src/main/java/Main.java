@@ -27,7 +27,6 @@ public class Main {
      * @param path
      */
     public static void parseFile(String path) {
-        // read the file
         try {
             Files.lines(Paths.get(path)).forEach(Main::decodeLine);
         } catch (IOException e) {
