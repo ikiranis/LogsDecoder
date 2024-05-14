@@ -59,7 +59,7 @@ public class Main {
 
             // Display the whole byte if it's not empty
             if (!Objects.equals(character, "")) {
-//                System.out.print(character);
+                System.out.print(character);
             }
         }
 
@@ -71,7 +71,7 @@ public class Main {
             previousSQLType = getSQLType(new String(decodedBytes));
 
             // print the decoded line
-            System.out.println(new String(decodedBytes));
+//            System.out.println(new String(decodedBytes));
         } catch (IllegalArgumentException e) {
             System.out.println("Invalid base64 string: " + encodedString);
         }
